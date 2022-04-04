@@ -47,14 +47,17 @@ const createUser = async function (req, res) {
         if (dupEmail) {
             return res.status(400).send({ status: false, msg: "this email ID is already registered" })
         }
-        if (!(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[a-zA-Z0-9]{8,}$/).test(userData.password)) {
-            return res.status(400).send({ status: false, msg: "password should contain at least [1,@.,a-zA] " })
-
-        }
         if (!isValid(userData.password)) {
             return res.status(400).send({ status: false, msg: "password is required" })
         }
+        if (!(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[a-zA-Z0-9]{8,}$/).test(userData.password)) {
+            return res.status(400).send({ status: false, msg: "password should contain at least [1,.,a-zA] " })
 
+        }
+        let validPass = userData.password.trim().length >= 8 && userData.password.trim().length <= 15
+        if(!validPass){
+            return res.status(400).send({ status: false, msg: "password length should be 8 to 15" })
+        }
         let saveData = await userModel.create(userData)
         let result = {
             _id: saveData._id,
@@ -79,8 +82,8 @@ const createUser = async function (req, res) {
 const loginUser = async function (req, res) {
     try {
         let { email, password } = req.body
-        if(!email || !password){
-            return res.status(400).send({status:false,msg:"required email or password"})
+        if (!email || !password) {
+            return res.status(400).send({ status: false, msg: "required email or password" })
         }
 
         let user = await userModel.findOne({ email: email.trim(), password: password.trim() });
@@ -88,7 +91,7 @@ const loginUser = async function (req, res) {
             return res.status(400).send({ status: false, msg: "username or the password is not correct" });
 
 
-        let token = jwt.sign({ userId: user._id.toString() }, "secret-key", { expiresIn: '1h' });
+        let token = jwt.sign({ userId: user._id.toString(), exp: Math.floor(Date.now() / 1000) + (60 * 30) }, "secret-key",);
         res.setHeader("x-api-key", token);
         res.status(200).send({ status: true, data: token });
     }
